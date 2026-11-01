@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Taxwise: income tax calculator</title>
+<meta name="description" content="Estimate income tax, social contributions and take-home pay in nine countries, and compare them on the same income.">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Coral (deal 1/3, seed dashboard-estimates-income-tax-cc43·50a2c6aa·2026-11-01·r0) · redesign: full
+ * nav: top bar, tabs under 60rem · signature: the payslip ledger · states: empty, no-tax, full
+ * axes: light/grotesk-sans/warm · posture: restrained · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R5 V3 · weakest: V, the log is empty so there is nothing to differ from; kept to one ledger instead of cards and charts */
+/* Hallmark · dropped effR · the donut centre is gone; its figure, total deducted, now sits in #heroSub and the compare table */
+/* Hallmark · answered: General Sans is not hosted on Google Fonts, so Hanken Grotesk loads in its place; a stationery texture and the felt desk are left out in app scope */
+:root{
+color-scheme:light dark;
+--space-3xs:2px;--space-2xs:4px;--space-xs:8px;--space-sm:12px;--space-md:16px;--space-lg:24px;--space-xl:40px;--space-2xl:64px;
+--text-xs:.75rem;--text-sm:.875rem;--text-md:1rem;--text-lg:1.2rem;--text-xl:1.44rem;--text-2xl:1.728rem;
+--ease-out:cubic-bezier(.16,1,.3,1);--dur-micro:120ms;--dur-short:220ms;
+--container:1240px;--gutter:40px;
+--color-paper:oklch(97% .006 55);--color-paper-2:oklch(94.5% .007 55);--color-paper-3:oklch(91.5% .009 55);
+--color-ink:oklch(21% .012 38);--color-ink-2:oklch(29% .013 40);--color-muted:oklch(47% .013 45);
+--color-rule:oklch(87% .009 55);--color-rule-2:oklch(81% .011 55);
+--color-accent:oklch(74% .125 30);--color-accent-ink:oklch(21% .012 38);--color-accent-2:oklch(54% .165 29);--color-focus:oklch(54% .17 30);
+--font-display:"General Sans","Hanken Grotesk",ui-sans-serif,system-ui,sans-serif;--font-body:var(--font-display);
+--font-outlier:"Geist Mono",ui-monospace,monospace;
+--radius-card:8px;--radius-input:6px;--rule-hair:1px;
+--tracking-display:-.03em;--display-weight:600;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+--color-paper:oklch(19% .01 40);--color-paper-2:oklch(23% .011 40);--color-paper-3:oklch(27% .012 40);
+--color-ink:oklch(95% .006 70);--color-ink-2:oklch(88% .008 65);--color-muted:oklch(73% .012 55);
+--color-rule:oklch(32% .011 45);--color-rule-2:oklch(40% .012 45);
+--color-accent-2:oklch(74% .14 32);--color-focus:oklch(76% .14 30)}}
+:root[data-theme="dark"]{
+--color-paper:oklch(19% .01 40);--color-paper-2:oklch(23% .011 40);--color-paper-3:oklch(27% .012 40);
+--color-ink:oklch(95% .006 70);--color-ink-2:oklch(88% .008 65);--color-muted:oklch(73% .012 55);
+--color-rule:oklch(32% .011 45);--color-rule-2:oklch(40% .012 45);
+--color-accent-2:oklch(74% .14 32);--color-focus:oklch(76% .14 30)}
+*,*::before,*::after{box-sizing:border-box}
+html,body{overflow-x:clip}
+html{scrollbar-color:var(--color-muted) var(--color-paper);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--color-paper);color:var(--color-ink);font-family:var(--font-body);font-size:var(--text-md);line-height:1.55;-webkit-font-smoothing:antialiased;caret-color:var(--color-accent)}
+::selection{background:color-mix(in oklab,var(--color-accent) 22%,transparent);color:var(--color-ink)}
+:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+h1,h2,h3{margin:0;font-family:var(--font-display);font-weight:var(--display-weight);font-synthesis:none;letter-spacing:var(--tracking-display);line-height:1.1;overflow-wrap:break-word;min-width:0;text-wrap:balance}
+h1{font-size:var(--text-xl)}h2{font-size:var(--text-lg)}h3{font-size:var(--text-md)}
+p{margin:0;text-wrap:pretty}
+button,input,select{font:inherit;color:inherit}
+.num{font-family:var(--font-outlier);font-variant-numeric:tabular-nums;font-size:.94em}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.muted{color:var(--color-muted);font-size:var(--text-sm)}
+
+.bar{border-bottom:var(--rule-hair) solid var(--color-rule)}
+.bar>div{max-width:var(--container);margin-inline:auto;padding:var(--space-md) var(--gutter);display:flex;align-items:baseline;gap:var(--space-md);min-height:56px}
+.shell{max-width:var(--container);margin-inline:auto;padding:var(--space-lg) var(--gutter) var(--space-2xl);display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:var(--space-xl);align-items:start}
+.panel{background:var(--color-paper-2);color:var(--color-ink);border-radius:var(--radius-card);padding:var(--space-lg);position:sticky;top:var(--space-md)}
+.main{display:grid;gap:var(--space-xl);min-width:0}
+label{display:block;margin:var(--space-md) 0 var(--space-xs);font-size:var(--text-sm);font-weight:500;color:var(--color-muted)}
+select,input{width:100%;min-height:44px;padding:0 var(--space-sm);background:var(--color-paper);border:var(--rule-hair) solid var(--color-muted);border-radius:var(--radius-input);transition:border-color var(--dur-micro) var(--ease-out)}
+select:hover,input:hover{border-color:var(--color-ink)}
+input:focus-visible,select:focus-visible{outline-offset:-2px}
+input:disabled,select:disabled,button:disabled{opacity:.55;cursor:not-allowed}
+.seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-xs)}
+.seg button,.tabs button{min-height:44px;padding:0 var(--space-sm);border:var(--rule-hair) solid var(--color-rule-2);border-radius:var(--radius-input);background:var(--color-paper);cursor:pointer;font-weight:500;transition:background-color var(--dur-micro) var(--ease-out),border-color var(--dur-micro) var(--ease-out)}
+.seg button:hover,.tabs button:hover{border-color:var(--color-ink)}
+.seg button:active,.tabs button:active{background:var(--color-paper-3);transform:translateY(1px)}
+.seg button[aria-pressed="true"]{background:var(--color-paper-3);border-color:var(--color-ink);font-weight:600;box-shadow:inset 0 -3px 0 var(--color-accent)}
+.take{margin-top:var(--space-lg);padding-top:var(--space-md);border-top:var(--rule-hair) solid var(--color-rule-2)}
+.take b{display:block;font-family:var(--font-outlier);font-weight:500;font-size:var(--text-2xl);letter-spacing:-.03em;line-height:1.2;overflow-wrap:anywhere}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:var(--space-md) 0 0;border-top:var(--rule-hair) solid var(--color-ink)}
+.stats div{padding:var(--space-sm) var(--space-md) 0 0}
+.stats dt{font-variant-numeric:tabular-nums;font-size:var(--text-sm);color:var(--color-muted)}
+.stats dd{margin:var(--space-2xs) 0 0;font-family:var(--font-outlier);font-weight:500;font-size:var(--text-lg);overflow-wrap:anywhere}
+.split{display:flex;height:12px;margin-top:var(--space-lg);border-radius:var(--radius-input);overflow:hidden;background:var(--color-paper-3)}
+.split i{display:block;min-width:0}
+.legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-md);margin-top:var(--space-sm);font-size:var(--text-sm)}
+.legend span{display:block;color:var(--color-muted)}
+.legend b{display:block;font-family:var(--font-outlier);font-weight:500;color:var(--color-ink);overflow-wrap:anywhere}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:var(--space-xs)}
+.c-net{background:var(--color-ink)}.c-tax{background:var(--color-accent-2)}.c-soc{background:var(--color-muted)}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-md);flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;margin-top:var(--space-sm)}
+th{text-align:left;font-weight:500;font-size:var(--text-sm);color:var(--color-muted);padding:var(--space-xs) var(--space-sm) var(--space-xs) 0;border-bottom:var(--rule-hair) solid var(--color-ink);white-space:nowrap}
+td{padding:var(--space-sm) var(--space-sm) var(--space-sm) 0;border-bottom:var(--rule-hair) solid var(--color-rule)}
+th.r,td.r{text-align:right;padding-right:0;padding-left:var(--space-sm)}
+tfoot td{font-weight:600}
+tfoot tr:last-child td{border-bottom:2px solid var(--color-ink);font-size:var(--text-md)}
+.empty{color:var(--color-muted);padding:var(--space-lg) 0}
+.rbar{display:block;height:8px;background:var(--color-paper-3);border-radius:4px;overflow:hidden;min-width:80px}
+.rbar i{display:block;height:100%;background:var(--color-muted)}
+tr.me .rbar i{background:var(--color-accent-2)}tr.me td:first-child{font-weight:600}
+.tabs{display:none}
+.btn{width:100%;min-height:44px;margin-top:var(--space-md);border:0;border-radius:var(--radius-input);background:var(--color-ink);color:var(--color-paper);font-weight:600;cursor:pointer;transition:background-color var(--dur-micro) var(--ease-out)}
+.btn:hover{background:var(--color-ink-2)}.btn:active{transform:translateY(1px)}
+.lnk{background:none;border:0;padding:var(--space-xs);min-height:44px;color:var(--color-ink);text-decoration:underline;text-underline-offset:.16em;cursor:pointer;font-weight:500}
+.lnk:hover{color:var(--color-accent-2)}.lnk:active{transform:translateY(1px)}
+.plan-out{margin-top:var(--space-md);font-size:var(--text-lg);line-height:1.4;max-width:60ch}
+.field{max-width:20rem}
+#pp tr:last-child td{font-weight:600;border-bottom:2px solid var(--color-ink)}
+.gap{margin-top:var(--space-xl)}
+@media (max-width:60rem){
+ :root{--gutter:16px}
+ .shell{display:block;padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+ .panel{position:static}
+ .view{display:none}.view.on{display:block}
+ .main{display:block}.main>.view{margin-bottom:var(--space-xl)}
+ .bar>div p{display:none}
+ .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stats div{padding-bottom:var(--space-sm)}
+ .hide-sm{display:none}
+ input,select{font-size:1rem;min-height:48px}
+ .tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-xs);position:fixed;left:0;right:0;bottom:0;z-index:300;background:var(--color-paper);border-top:var(--rule-hair) solid var(--color-rule);padding:var(--space-xs) var(--space-md) calc(var(--space-xs) + env(safe-area-inset-bottom,0px))}
+ .tabs button{min-height:48px}
+ .tabs button[aria-current="page"]{background:var(--color-paper-3);border-color:var(--color-ink);font-weight:600}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<noscript><p style="padding:16px">Taxwise needs JavaScript to calculate your tax.</p></noscript>
+<header class="bar"><div><h1>Taxwise</h1><p class="muted">Estimate income tax and take-home pay in 9 countries</p></div></header>
+
+<div class="shell">
+ <aside class="panel view on" id="v-calc">
+  <h2>Your income</h2>
+  <label for="country">Country</label>
+  <select id="country" name="country"></select>
+  <label for="amt" id="amtL">Gross income</label>
+  <input id="amt" name="income" type="number" inputmode="numeric" min="0" step="1000" autocomplete="off">
+  <div class="seg" id="per" role="group" aria-label="Income period" style="margin-top:12px"><button type="button" data-p="1" aria-pressed="true">Per year</button><button type="button" data-p="12" aria-pressed="false">Per month</button></div>
+  <label for="ded">Extra deductions (per year)</label>
+  <input id="ded" name="deductions" type="number" inputmode="numeric" min="0" step="1000" value="0" autocomplete="off">
+  <p class="muted" id="note" style="margin-top:16px"></p>
+  <button type="button" class="btn" id="save">Save scenario</button>
+  <div class="take"><span class="muted">Take-home pay per month</span><b id="heroNet"></b><p class="muted" id="heroSub"></p></div>
+ </aside>
+
+ <main class="main">
+  <section class="view" id="v-dash" aria-labelledby="h-sum">
+   <h2 id="h-sum">Summary</h2>
+   <dl class="stats">
+    <div><dt>Gross income</dt><dd id="kG"></dd></div>
+    <div><dt>Income tax</dt><dd id="kT"></dd></div>
+    <div><dt id="kSL">Social contributions</dt><dd id="kS"></dd></div>
+    <div><dt>Take-home (year)</dt><dd id="kN"></dd></div>
+   </dl>
+   <div class="split" id="dn" role="img" aria-label="Share of gross income kept, paid as tax and paid as contributions"></div>
+   <div class="legend" id="lg"></div>
+   <table>
+    <thead><tr><th>Amount</th><th class="r">Per year</th><th class="r">Per month</th><th class="r hide-sm">Per week</th></tr></thead>
+    <tbody id="pp"></tbody>
+   </table>
+  </section>
+
+  <section class="view" id="v-dash2" aria-labelledby="h-led">
+   <div class="sec-h"><h2 id="h-led">Tax by bracket</h2><p class="muted" id="mrg"></p></div>
+   <table>
+    <thead><tr><th>Bracket</th><th class="r">Rate</th><th class="r hide-sm">Taxed income</th><th class="r">Tax</th></tr></thead>
+    <tbody id="br"></tbody><tfoot id="tf"></tfoot>
+   </table>
+  </section>
+
+  <section class="view" id="v-cmp" aria-labelledby="h-cmp">
+   <h2 id="h-cmp">Same income, every country</h2>
+   <p class="muted" style="margin-top:4px">Your income converted to US dollars at rough fixed rates, then taxed under each country’s rules. Total deducted as a share of gross.</p>
+   <table>
+    <thead><tr><th>Country</th><th class="r">Deducted</th><th class="hide-sm" style="width:40%">Share of gross</th></tr></thead>
+    <tbody id="cm"></tbody>
+   </table>
+  </section>
+  <section class="view" id="v-plan" aria-labelledby="h-plan">
+   <h2 id="h-plan">Target take-home</h2>
+   <p class="muted" style="margin-top:4px">How much gross pay gives the take-home you want, using the country and extra deductions on the left.</p>
+   <div class="field"><label for="tgt">Take-home wanted per month</label>
+   <input id="tgt" name="target" type="number" inputmode="numeric" min="0" step="100" autocomplete="off"></div>
+   <p class="plan-out" id="tgtOut" role="status"></p>
+   <div class="sec-h gap"><h2>Saved scenarios</h2><p class="muted" id="svMsg" role="status"></p></div>
+   <table>
+    <thead><tr><th>Scenario</th><th class="r">Take-home (year)</th><th class="r hide-sm">Deducted</th><th class="r"><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody id="sv"></tbody>
+   </table>
+  </section>
+ </main>
+</div>
+
+<nav class="tabs" id="tabs" aria-label="Screens">
+ <button type="button" data-v="calc" aria-current="page">Calculate</button><button type="button" data-v="dash">Dashboard</button><button type="button" data-v="cmp">Compare</button><button type="button" data-v="plan">Plan</button>
+</nav>
+
+<script>
+const C={
+IN:{n:'India',cur:'INR',loc:'en-IN',usd:.011,def:1800000,ded:()=>75000,
+ b:[[400000,0],[800000,.05],[1200000,.1],[1600000,.15],[2000000,.2],[2400000,.25],[1e15,.3]],
+ post:(t,x)=>(x<=1200000?0:t)*1.04,soc:()=>0,sl:'Social contributions',
+ note:'Tax year FY 2026/27, new regime. Rs 75,000 standard deduction, 4% cess, no tax up to 12 lakh taxable. Surcharge and PF are not included.'},
+US:{n:'United States',cur:'USD',loc:'en-US',usd:1,def:85000,ded:()=>16100,
+ b:[[12400,.1],[50400,.12],[105700,.22],[201775,.24],[256225,.32],[640600,.35],[1e15,.37]],
+ soc:g=>Math.min(g,184500)*.062+g*.0145,sl:'Social Security + Medicare',
+ note:'Tax year 2026. Federal tax only, single filer, standard deduction of $16,100. State and local taxes are not included.'},
+GB:{n:'United Kingdom',cur:'GBP',loc:'en-GB',usd:1.3,def:55000,
+ ded:g=>Math.max(0,12570-Math.max(0,(g-100000)/2)),
+ b:[[37700,.2],[125140-12570,.4],[1e15,.45]],
+ soc:g=>Math.max(0,Math.min(g,50270)-12570)*.08+Math.max(0,g-50270)*.02,sl:'National Insurance',
+ note:'Tax year 2026/27, England, Wales and Northern Ireland. The personal allowance tapers above 100,000 pounds. Scotland differs.'},
+CA:{n:'Canada',cur:'CAD',loc:'en-CA',usd:.72,def:90000,ded:()=>0,
+ b:[[58523,.14],[117045,.205],[181440,.26],[258482,.29],[1e15,.33]],
+ post:t=>Math.max(0,t-16452*.14),
+ soc:g=>Math.min(Math.max(0,g-3500),71100)*.0595+Math.min(Math.max(0,g-74600),10400)*.04+Math.min(g,68900)*.0163,sl:'CPP, CPP2 + EI',
+ note:'Tax year 2026. Federal tax only, after the basic personal amount. Provincial tax is not included, so real tax will be higher.'},
+AU:{n:'Australia',cur:'AUD',loc:'en-AU',usd:.65,def:100000,ded:()=>0,
+ b:[[18200,0],[45000,.15],[135000,.3],[190000,.37],[1e15,.45]],
+ post:(t,x)=>t+x*.02,soc:()=>0,sl:'Social contributions',
+ note:'Tax year 2026/27, resident rates, with the 2% Medicare levy included in the tax. Employer superannuation is paid on top and not counted.'},
+NZ:{n:'New Zealand',cur:'NZD',loc:'en-NZ',usd:.59,def:85000,ded:()=>0,
+ b:[[15600,.105],[53500,.175],[78100,.3],[180000,.33],[1e15,.39]],
+ soc:g=>Math.min(g,156641)*.0175,sl:'ACC earners’ levy',
+ note:'Tax year 2026/27. ACC earners’ levy of 1.75% up to 156,641 dollars of earnings. KiwiSaver and student loans are not included.'},
+IE:{n:'Ireland',cur:'EUR',loc:'en-IE',usd:1.15,def:60000,ded:()=>0,
+ b:[[44000,.2],[1e15,.4]],
+ post:t=>Math.max(0,t-4000),
+ soc:g=>{const u=g<=13000?0:Math.min(g,12012)*.005+Math.max(0,Math.min(g,28700)-12012)*.02+Math.max(0,Math.min(g,70044)-28700)*.03+Math.max(0,g-70044)*.08;return u+(g>18304?g*.042:0)},sl:'USC + PRSI',
+ note:'Tax year 2026. Single PAYE worker with the 2,000 euro personal and 2,000 euro employee credits. USC at 0.5% to 8% and PRSI at 4.2% are counted as contributions.'},
+SG:{n:'Singapore',cur:'SGD',loc:'en-SG',usd:.77,def:96000,ded:()=>0,
+ b:[[20000,0],[30000,.02],[40000,.035],[80000,.07],[120000,.115],[160000,.15],[200000,.18],[240000,.19],[280000,.195],[320000,.2],[500000,.22],[1e6,.23],[1e15,.24]],
+ soc:g=>Math.min(g,96000)*.2,sl:'CPF (employee 20%)',
+ note:'Tax year 2026, resident rates. CPF is shown as a deduction from pay; CPF tax relief is not applied.'},
+ZA:{n:'South Africa',cur:'ZAR',loc:'en-ZA',usd:.055,def:600000,ded:()=>0,
+ b:[[245100,.18],[383100,.26],[530200,.31],[695800,.36],[887000,.39],[1878600,.41],[1e15,.45]],
+ post:t=>Math.max(0,t-17820),
+ soc:g=>Math.min(g,212544)*.01,sl:'UIF (1%)',
+ note:'Tax year 2026/27 (March to February), for under 65s with the 17,820 rand primary rebate. Medical credits and retirement deductions are not included.'}
+};
+const $=id=>document.getElementById(id);
+let cc='IN',per=1;
+const fmt=(c,v)=>new Intl.NumberFormat(c.loc,{style:'currency',currency:c.cur,maximumFractionDigits:0}).format(v);
+const pct=v=>(v*100).toFixed(1).replace(/\.0$/,'')+'%';
+
+function calc(c,g,extra){
+ const taxable=Math.max(0,g-c.ded(g)-extra);
+ let parts=[],tax=0;
+ if(c.fn){tax=c.fn(taxable);parts=[{lab:'Progressive income tax',base:taxable,rate:taxable?tax/taxable:0,amt:tax}]}
+ else{
+  let prev=0;
+  c.b.forEach(([lim,r])=>{const base=Math.max(0,Math.min(taxable,lim)-prev);
+   const lab=lim>=1e15?'Over '+fmt(c,prev):fmt(c,prev)+' to '+fmt(c,lim);
+   parts.push({lab,base,rate:r,amt:base*r});prev=lim});
+  tax=parts.reduce((s,p)=>s+p.amt,0);
+  if(c.post){const t2=c.post(tax,c===C.AU?taxable:taxable);const k=tax?t2/tax:0;tax=t2;if(k)parts.forEach(p=>{p.amt*=k})}
+ }
+ tax=Math.max(0,tax);
+ const soc=c.soc(g),net=g-tax-soc;
+ return{taxable,parts,tax,soc,net,eff:g?(tax+soc)/g:0}
+}
+
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const SAVED=store.get('taxwise:last');
+let scn=store.get('taxwise:scn');if(!Array.isArray(scn))scn=[];
+let undo=null;
+function renderTgt(){
+ const c=C[cc],t=(+$('tgt').value||0)*12,extra=+$('ded').value||0,o=$('tgtOut');
+ if(!t){o.textContent='Enter a monthly take-home to see the gross pay it needs.';return}
+ let lo=t,hi=t*5+1e6;for(let i=0;i<60;i++){const m=(lo+hi)/2;if(calc(c,m,extra).net<t)lo=m;else hi=m}
+ const r=calc(c,hi,extra);
+ if(r.net<t-1){o.textContent='That take-home is out of range for this calculator.';return}
+ o.innerHTML=`You need about <b class="num">${fmt(c,hi)}</b> gross a year (<span class="num">${fmt(c,hi/12)}</span> a month). Tax and contributions would be <span class="num">${fmt(c,r.tax+r.soc)}</span> a year, ${pct(r.eff)} of gross.`;
+}
+function renderSv(){
+ $('sv').innerHTML=scn.length?scn.map(s=>{const c=C[s.cc];return `<tr><td>${c.n}<br><span class="muted num">${fmt(c,s.g)} a year</span></td><td class="r num">${fmt(c,s.net)}</td><td class="r num hide-sm">${pct(s.eff)}</td><td class="r"><button type="button" class="lnk" data-open="${s.id}">Open</button><button type="button" class="lnk" data-del="${s.id}" aria-label="Delete scenario ${c.n}">Delete</button></td></tr>`}).join(''):'<tr><td colspan="4" class="empty">Save a scenario to compare it here.</td></tr>';
+}
+function render(){
+ const c=C[cc],amtIn=+$('amt').value||0,extra=+$('ded').value||0,g=amtIn*per;
+ const r=calc(c,g,extra);
+ store.set('taxwise:last',{cc,per,amt:$('amt').value,ded:$('ded').value});
+ $('save').disabled=!g;
+ $('pp').innerHTML=[['Gross income',g],['Income tax',r.tax],[c.sl,r.soc],['Take-home',r.net]].map(([l,v])=>`<tr><td>${l}</td><td class="r num">${fmt(c,v)}</td><td class="r num">${fmt(c,v/12)}</td><td class="r num hide-sm">${fmt(c,v/52)}</td></tr>`).join('');
+ renderTgt();
+ const N=v=>`<span class="num">${fmt(c,v)}</span>`;
+ $('note').textContent=c.note;
+ $('kG').textContent=fmt(c,g);$('kT').textContent=fmt(c,r.tax);
+ $('kS').textContent=fmt(c,r.soc);$('kSL').textContent=c.sl;$('kN').textContent=fmt(c,r.net);
+ ['kG','kT','kS','kN'].forEach(i=>$(i).classList.add('num'));
+ $('heroNet').textContent=fmt(c,r.net/12);
+ $('heroSub').textContent='Tax is '+pct(g?r.tax/g:0)+' of gross. Total deducted: '+pct(r.eff)+'.';
+ const sh=[[r.net,'c-net','Take-home'],[r.tax,'c-tax','Income tax'],[r.soc,'c-soc',c.sl]];
+ $('dn').innerHTML=sh.map(([v,k])=>`<i class="${k}" style="width:${g?Math.max(0,v)/g*100:0}%"></i>`).join('');
+ $('lg').innerHTML=sh.map(([v,k,l])=>`<div><span><i class="sw ${k}"></i>${l}</span><b>${fmt(c,v)}</b></div>`).join('');
+ const act=r.parts.filter(p=>p.base>0);
+ const marg=act.length?act[act.length-1].rate:0;
+ $('mrg').textContent=g?`Top bracket ${pct(marg)}. Taxable income ${fmt(c,r.taxable)}.`:'';
+ if(!g){
+  $('br').innerHTML='<tr><td colspan="4" class="empty">Enter an income to see the tax in each bracket.</td></tr>';$('tf').innerHTML='';
+ }else{
+  $('br').innerHTML=act.length?act.map(p=>`<tr><td>${p.lab}</td><td class="r num">${pct(p.rate)}</td><td class="r num hide-sm">${fmt(c,p.base)}</td><td class="r num">${fmt(c,p.amt)}</td></tr>`).join(''):'<tr><td colspan="4" class="empty">No income tax is due on this income.</td></tr>';
+  $('tf').innerHTML=`<tr><td colspan="2">Income tax</td><td class="hide-sm"></td><td class="r num">${fmt(c,r.tax)}</td></tr><tr><td colspan="2">${c.sl}</td><td class="hide-sm"></td><td class="r num">${fmt(c,r.soc)}</td></tr><tr><td colspan="2">Take-home (year)</td><td class="hide-sm"></td><td class="r num">${fmt(c,r.net)}</td></tr>`;
+ }
+ const usd=g*c.usd;
+ if(!g){$('cm').innerHTML='<tr><td colspan="3" class="empty">Enter an income to compare countries.</td></tr>';return}
+ const rows=Object.entries(C).map(([k,o])=>{const gg=usd/o.usd;const x=calc(o,gg,extra*c.usd/o.usd);return{k,o,e:x.eff}}).sort((a,b)=>a.e-b.e);
+ $('cm').innerHTML=rows.map(x=>`<tr class="${x.k===cc?'me':''}"><td>${x.o.n}</td><td class="r num">${pct(x.e)}</td><td class="hide-sm"><span class="rbar"><i style="width:${Math.min(100,x.e*100/.6)}%"></i></span></td></tr>`).join('');
+}
+Object.entries(C).forEach(([k,c])=>{const o=document.createElement('option');o.value=k;o.textContent=c.n;$('country').appendChild(o)});
+function setCountry(k){cc=k;$('amt').value=C[k].def/(per||1);$('amtL').textContent='Gross income ('+C[k].cur+')';render()}
+$('country').onchange=e=>setCountry(e.target.value);
+$('amt').oninput=render;$('ded').oninput=render;
+$('per').onclick=e=>{const b=e.target.closest('button');if(!b)return;const np=+b.dataset.p;
+ $('amt').value=Math.round(($('amt').value||0)*per/np);per=np;
+ [...$('per').children].forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
+function show(v){
+ const map={calc:['v-calc'],dash:['v-dash','v-dash2'],cmp:['v-cmp'],plan:['v-plan']};
+ document.querySelectorAll('.view').forEach(e=>e.classList.remove('on'));
+ map[v].forEach(i=>$(i).classList.add('on'));
+ [...$('tabs').children].forEach(b=>{if(b.dataset.v===v)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+ try{location.hash=v}catch(e){}
+}
+$('tabs').onclick=e=>{const b=e.target.closest('button');if(b){show(b.dataset.v);scrollTo(0,0)}};
+const mq=matchMedia('(min-width:60rem)');
+function layout(){if(mq.matches){document.querySelectorAll('.view').forEach(e=>e.classList.add('on'))}else{const h=location.hash.slice(1);show(['calc','dash','cmp','plan'].includes(h)?h:'calc')}}
+mq.onchange=layout;
+$('tgt').oninput=renderTgt;
+$('save').onclick=()=>{const c=C[cc],g=(+$('amt').value||0)*per;if(!g)return;const extra=+$('ded').value||0,r=calc(c,g,extra);
+ scn.unshift({id:Date.now(),cc,g,extra,net:r.net,eff:r.eff});scn=scn.slice(0,20);store.set('taxwise:scn',scn);renderSv();$('svMsg').textContent='Scenario saved.'};
+$('v-plan').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.del){const i=scn.findIndex(s=>String(s.id)===b.dataset.del);if(i>-1){undo={s:scn[i],i};scn.splice(i,1);store.set('taxwise:scn',scn);renderSv();$('svMsg').innerHTML='Scenario removed. <button type="button" class="lnk" id="undo">Undo</button>'}}
+ else if(b.id==='undo'&&undo){scn.splice(undo.i,0,undo.s);undo=null;store.set('taxwise:scn',scn);renderSv();$('svMsg').textContent='Scenario restored.'}
+ else if(b.dataset.open){const s=scn.find(x=>String(x.id)===b.dataset.open);if(s){per=1;[...$('per').children].forEach(x=>x.setAttribute('aria-pressed',+x.dataset.p===1));cc=s.cc;$('country').value=s.cc;$('amtL').textContent='Gross income ('+C[cc].cur+')';$('amt').value=s.g;$('ded').value=s.extra||0;render();if(!mq.matches){show('calc');scrollTo(0,0)}}}};
+renderSv();
+if(SAVED&&C[SAVED.cc]){$('country').value=SAVED.cc;per=SAVED.per===12?12:1;[...$('per').children].forEach(x=>x.setAttribute('aria-pressed',+x.dataset.p===per));setCountry(SAVED.cc);$('amt').value=+SAVED.amt||C[SAVED.cc].def/per;$('ded').value=+SAVED.ded||0;render()}else{$('country').value='IN';setCountry('IN')}
+layout();
+</script>
+</body>
+</html>
